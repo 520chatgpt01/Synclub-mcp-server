@@ -83,3 +83,5 @@ Edit your `claude_desktop_config.json` file:
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
+## From
+https://github.com/520chatgpt01/Synclub-mcp-server
