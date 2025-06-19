@@ -1535,7 +1535,7 @@ wheels = [
 
 [[package]]
 name = "synclub-mcp"
-version = "0.0.14"
+version = "0.0.1"
 source = { editable = "." }
 dependencies = [
     { name = "aiofiles" },
@@ -1568,6 +1568,12 @@ dev = [
     { name = "twine" },
 ]
 
+[package.dev-dependencies]
+dev = [
+    { name = "build" },
+    { name = "twine" },
+]
+
 [package.metadata]
 requires-dist = [
     { name = "aiofiles", specifier = ">=24.1.0" },
@@ -1596,6 +1602,12 @@ requires-dist = [
     { name = "websockets", specifier = ">=15.0.1" },
 ]
 provides-extras = ["dev"]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "build", specifier = ">=1.2.2.post1" },
+    { name = "twine", specifier = ">=6.1.0" },
+]
 
 [[package]]
 name = "tomli"

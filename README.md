@@ -61,21 +61,21 @@ Edit your `claude_desktop_config.json` file:
 
 ##  Available Tools
 
-| Tool Name | Description | Cost Warning |
-|-----------|-------------|--------------|
-| `minimax_text_to_audio` | Convert text to speech with customizable voice settings | ⚠️ Paid API |
+| Tool Name | Description |
+|-----------|-------------|
+| `minimax_text_to_audio` | Convert text to speech with customizable voice settings |
 | `minimax_list_voices` | List all available voices | Free |
-| `minimax_voice_clone` | Clone voices from audio files | ⚠️ Paid API |
-| `minimax_text_to_image` | Generate images from text prompts | ⚠️ Paid API |
-| `generate_text_to_video` | Generate videos from text descriptions | ⚠️ Paid API |
-| `generate_image_to_video` | Generate videos from images with text prompts | ⚠️ Paid API |
-| `image_recognition` | Analyze and recognize image content | ⚠️ Paid API |
+| `minimax_voice_clone` | Clone voices from audio files |
+| `minimax_text_to_image` | Generate images from text prompts |
+| `generate_text_to_video` | Generate videos from text descriptions |
+| `generate_image_to_video` | Generate videos from images with text prompts |
+| `image_recognition` | Analyze and recognize image content |
 | `remove_bg` | Automatically remove image backgrounds | Free |
 | `hd_restore` | Enhance image quality and resolution | Free |
-| `generate_image` | Generate images using alternative models | ⚠️ Paid API |
-| `ai_search` | Perform AI-powered search queries | ⚠️ Paid API |
-| `japanese_tts` | Japanese text-to-speech conversion | ⚠️ Paid API |
-| `edit_image` | Edit images with prompts and masks | ⚠️ Paid API |
+| `generate_image` | Generate images using alternative models |
+| `ai_search` | Perform AI-powered search queries |
+| `japanese_tts` | Japanese text-to-speech conversion |
+| `edit_image` | Edit images with prompts and masks |
 
 ### Environment Variables
 
