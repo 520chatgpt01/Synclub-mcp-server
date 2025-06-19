@@ -1309,5 +1309,9 @@ async def edit_image_from_urls(
 
 
 
-if __name__ == "__main__":
+def main():
+    """Main entry point for the MCP server."""
     mcp.run(transport="stdio")
+
+if __name__ == "__main__":
+    main()

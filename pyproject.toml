@@ -1,6 +1,6 @@
 [project]
 name = "synclub-mcp"
-version = "0.0.1"
+version = "0.2.0"
 description = "SynClub MCP Server"
 authors = [
     { name = "Zirui Li", email = "zirui010925@gmail.com" },

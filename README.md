@@ -48,11 +48,10 @@ Edit your `claude_desktop_config.json` file:
     "SynClub": {
       "command": "uvx",
       "args": [
-        "synclub-mcp",
-        "-y"
+          "synclub-mcp"
       ],
       "env": {
-        "SYNCLUB_MCP_API": "Your API key"
+          "SYNCLUB_MCP_API": "your api key"
       }
     }
   }
