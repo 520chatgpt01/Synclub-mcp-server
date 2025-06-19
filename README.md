@@ -52,7 +52,7 @@ Edit your `claude_desktop_config.json` file:
         "-y"
       ],
       "env": {
-        "SYNCLUB_MCP_API": "Your API key".
+        "SYNCLUB_MCP_API": "Your API key"
       }
     }
   }
