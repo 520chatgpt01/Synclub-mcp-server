@@ -1,9 +1,9 @@
 [project]
-name = "minimax-mcp"
+name = "synclub-mcp"
 version = "0.0.14"
-description = "Minimax MCP Server"
+description = "SynClub MCP Server"
 authors = [
-    { name = "Roy Wu", email = "zhengyu@minimax.chat" },
+    { name = "Zirui Li", email = "zirui010925@gmail.com" },
 ]
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -16,7 +16,7 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
 ]
 keywords = [
-    "minimax",
+    "synclub",
     "mcp",
     "text-to-speech",
     "voice-cloning",
@@ -35,10 +35,16 @@ dependencies = [
     "sounddevice==0.5.1",
     "soundfile==0.13.1",
     "requests==2.31.0",
+    "aiohttp>=3.12.12",
+    "aiofiles>=24.1.0",
+    "gtts>=2.5.4",
+    "websockets>=15.0.1",
+    "func-timeout>=4.3.5",
+    "websocket-client>=1.8.0",
 ]
 
 [project.scripts]
-minimax-mcp = "minimax_mcp.server:main"
+synclub-mcp = "synclub_mcp.server:main"
 
 [project.optional-dependencies]
 dev = [
@@ -58,4 +64,4 @@ build-backend = "setuptools.build_meta"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
-addopts = "-v --cov=minimax_mcp --cov-report=term-missing"
+addopts = "-v --cov=synclub_mcp --cov-report=term-missing"

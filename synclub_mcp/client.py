@@ -1,11 +1,11 @@
-"""Minimax API client base class."""
+"""SynClub API client base class."""
 
 import requests
 from typing import Any, Dict
-from minimax_mcp.exceptions import MinimaxAuthError, MinimaxRequestError
+from synclub_mcp.exceptions import SynclubAuthError, SynclubRequestError
 
-class MinimaxAPIClient:
-    """Base client for making requests to Minimax API."""
+class SynclubAPIClient:
+    """Base client for making requests to SynClub API."""
     
     def __init__(self, api_key: str, api_host: str):
         """Initialize the API client.
@@ -19,7 +19,7 @@ class MinimaxAPIClient:
         self.session = requests.Session()
         self.session.headers.update({
             'Authorization': f'Bearer {api_key}',
-            'MM-API-Source': 'Minimax-MCP'
+            'MM-API-Source': 'synclub-mcp'
         })
 
     def _make_request(
@@ -28,7 +28,7 @@ class MinimaxAPIClient:
         endpoint: str, 
         **kwargs
     ) -> Dict[str, Any]:
-        """Make an HTTP request to the Minimax API.
+        """Make an HTTP request to the SynClub API.
         
         Args:
             method: HTTP method (GET, POST, etc.)
@@ -39,8 +39,8 @@ class MinimaxAPIClient:
             API response data as dictionary
             
         Raises:
-            MinimaxAuthError: If authentication fails
-            MinimaxRequestError: If the request fails
+            SynclubAuthError: If authentication fails
+            SynclubRequestError: If the request fails
         """
         url = f"{self.api_host}{endpoint}"
         
@@ -66,17 +66,17 @@ class MinimaxAPIClient:
             if base_resp.get("status_code") != 0:
                 match base_resp.get("status_code"):
                     case 1004:
-                        raise MinimaxAuthError(
+                        raise SynclubAuthError(
                             f"API Error: {base_resp.get('status_msg')}, please check your API key and API host."
                             f"Trace-Id: {response.headers.get('Trace-Id')}"
                         )
                     case 2038:
-                        raise MinimaxRequestError(
+                        raise SynclubRequestError(
                             f"API Error: {base_resp.get('status_msg')}, should complete real-name verification on the open-platform(https://platform.minimaxi.com/user-center/basic-information)."
                             f"Trace-Id: {response.headers.get('Trace-Id')}"
                         )
                     case _:
-                        raise MinimaxRequestError(
+                        raise SynclubRequestError(
                             f"API Error: {base_resp.get('status_code')}-{base_resp.get('status_msg')} "
                             f"Trace-Id: {response.headers.get('Trace-Id')}"
                         )
@@ -84,7 +84,7 @@ class MinimaxAPIClient:
             return data
             
         except requests.exceptions.RequestException as e:
-            raise MinimaxRequestError(f"Request failed: {str(e)}")
+            raise SynclubRequestError(f"Request failed: {str(e)}")
             
     def get(self, endpoint: str, **kwargs) -> Dict[str, Any]:
         """Make a GET request."""

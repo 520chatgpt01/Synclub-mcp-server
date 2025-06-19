@@ -32,7 +32,7 @@ done
 CMD="python -m pytest"
 
 if [ "$COVERAGE" = true ]; then
-  CMD="$CMD --cov=minimax_mcp"
+  CMD="$CMD --cov=synclub_mcp"
 fi
 
 if [ "$VERBOSE" = true ]; then

@@ -10,6 +10,6 @@
 .cursor
 .cursorignore
 dist/
-minimax_mcp.egg-info/
+synclub_mcp.egg-info/
 .coverage
 coverage.xml

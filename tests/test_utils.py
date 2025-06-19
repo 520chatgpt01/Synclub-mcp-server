@@ -1,8 +1,8 @@
 import pytest
 from pathlib import Path
 import tempfile
-from minimax_mcp.utils import (
-    MinimaxMcpError,
+from synclub_mcp.utils import (
+    SynclubMcpError,
     is_file_writeable,
     build_output_file,
     build_output_path,
@@ -103,5 +103,5 @@ def test_process_input_file():
         result = process_input_file(str(test_file))
         assert result == test_file
 
-        with pytest.raises(MinimaxMcpError):
+        with pytest.raises(SynclubMcpError):
             process_input_file(str(temp_path / "nonexistent.mp3"))
