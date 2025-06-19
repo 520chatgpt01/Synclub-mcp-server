@@ -1,4 +1,4 @@
-# SynClub MCP Server
+<h1 align="center">SynClub MCP Server</h1>
 
 <p align="center">
   Official SynClub Model Context Protocol (MCP) Server that enables powerful AI generation capabilities including text-to-speech, voice cloning, video generation, image generation, and more. Compatible with MCP clients like <a href="https://www.anthropic.com/claude">Claude Desktop</a>, <a href="https://www.cursor.so">Cursor</a>, <a href="https://codeium.com/windsurf">Windsurf</a>, and others.
@@ -34,7 +34,7 @@ powershell -c "irm https://astral.sh/uv/install.sh | iex"
 
 ### 2. Get Your API Key
 
-Obtain your API key from your account information page on the SynClub website.
+Obtain your API key from your account information page on the SynClub server website.
 
 ### 3. Configure Your MCP Client
 
@@ -52,7 +52,7 @@ Edit your `claude_desktop_config.json` file:
         "-y"
       ],
       "env": {
-        "SYNCLUB_MCP_API": Your api key.
+        "SYNCLUB_MCP_API": "Your API key".
       }
     }
   }
@@ -67,15 +67,14 @@ Edit your `claude_desktop_config.json` file:
 | `minimax_list_voices` | List all available voices | Free |
 | `minimax_voice_clone` | Clone voices from audio files |
 | `minimax_text_to_image` | Generate images from text prompts |
-| `generate_text_to_video` | Generate videos from text descriptions |
-| `generate_image_to_video` | Generate videos from images with text prompts |
+| `generate_text_to_video` | Generate videos from text descriptions using Kling models|
+| `generate_image_to_video` | Generate videos from images with text prompts using Kling models|
 | `image_recognition` | Analyze and recognize image content |
 | `remove_bg` | Automatically remove image backgrounds | Free |
 | `hd_restore` | Enhance image quality and resolution | Free |
 | `generate_image` | Generate images using alternative models |
 | `ai_search` | Perform AI-powered search queries |
 | `japanese_tts` | Japanese text-to-speech conversion |
-| `edit_image` | Edit images with prompts and masks |
 
 ### Environment Variables
 
