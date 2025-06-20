@@ -38,7 +38,7 @@ logging.basicConfig(level=logging.ERROR)
 
 
 load_dotenv()
-api_key = os.getenv(ENV_MINIMAX_API_KEY)
+api_key = os.getenv(ENV_SYNCLUB_MCP_API)
 base_path = os.getenv(ENV_synclub_mcp_BASE_PATH) or "~/Desktop"
 api_host = os.getenv(ENV_MINIMAX_API_HOST)
 resource_mode = os.getenv(ENV_RESOURCE_MODE) or RESOURCE_MODE_URL
@@ -73,7 +73,7 @@ async def make_unified_request(
     default_headers = {
         'Content-Type': 'application/json',
         'User-Agent': 'synclub-mcp-server/1.0.0',
-        'x-api-key': ""
+        'x-api-key': api_key
     }
     
     if headers:
@@ -306,7 +306,7 @@ def minimax_voice_clone(
             response.raise_for_status()
             files = {'file': ('audio_file.mp3', response.raw, 'audio/mpeg')}
             data = {'purpose': 'voice_clone'}
-            response_data = api_client.post("/pulsar/mcp/miniMax/upload", files=files, data=data)
+            response_data = api_client.post("/pulsar/mcp/minimax/upload", files=files, data=data)
         else:
             # open and upload file
             if not os.path.exists(file):
@@ -314,7 +314,7 @@ def minimax_voice_clone(
             with open(file, 'rb') as f:
                 files = {'file': f}
                 data = {'purpose': 'voice_clone'}
-                response_data = api_client.post("/pulsar/mcp/miniMax/upload", files=files, data=data)
+                response_data = api_client.post("/pulsar/mcp/minimax/upload", files=files, data=data)
             
         file_id = response_data.get("file",{}).get("file_id")
         if not file_id:
@@ -329,7 +329,7 @@ def minimax_voice_clone(
             payload["text"] = text
             payload["model"] = DEFAULT_SPEECH_MODEL
 
-        response_data = api_client.post("/pulsar/mcp/miniMax/vc", json=payload)
+        response_data = api_client.post("/pulsar/mcp/minimax/vc", json=payload)
         
         if not response_data.get("demo_audio"):
             return TextContent(
@@ -391,7 +391,7 @@ def minimax_upload_file(
             response.raise_for_status()
             files = {'file': ('uploaded_file', response.raw, 'application/octet-stream')}
             data = {'purpose': purpose}
-            response_data = api_client.post("/pulsar/mcp/miniMax/upload", files=files, data=data)
+            response_data = api_client.post("/pulsar/mcp/minimax/upload", files=files, data=data)
         else:
             # open and upload file
             if not os.path.exists(file_path):
@@ -399,7 +399,7 @@ def minimax_upload_file(
             with open(file_path, 'rb') as f:
                 files = {'file': f}
                 data = {'purpose': purpose}
-                response_data = api_client.post("/pulsar/mcp/miniMax/upload", files=files, data=data)
+                response_data = api_client.post("/pulsar/mcp/minimax/upload", files=files, data=data)
             
         file_id = response_data.get("file",{}).get("file_id")
         if not file_id:
@@ -433,7 +433,7 @@ def minimax_upload_file(
 )
 def minimax_query_file(file_id: str) -> TextContent:
     try:
-        response_data = api_client.get(f"/pulsar/mcp/miniMax/query/ttv_file?file_id={file_id}")
+        response_data = api_client.get(f"/pulsar/mcp/minimax/query/ttv_file?file_id={file_id}")
         
         file_info = response_data.get("file", {})
         if not file_info:
@@ -495,7 +495,7 @@ def minimax_text_to_image(
             "prompt_optimizer": prompt_optimizer
         }
 
-        response_data = api_client.post("/pulsar/mcp/miniMax/tti", json=payload)
+        response_data = api_client.post("/pulsar/mcp/minimax/tti", json=payload)
         image_urls = response_data.get("data",{}).get("image_urls",[])
         
         if not image_urls:
@@ -534,7 +534,142 @@ def minimax_text_to_image(
             type="text",
             text=f"Failed to save images: {str(e)}"
         )
-    
+
+
+
+@mcp.tool(
+    description="""Generate a video from a prompt.
+
+    COST WARNING: This tool makes an API call to Minimax which may incur costs. Only use when explicitly requested by the user.
+
+     Args:
+        model (str, optional): The model to use. Values range ["T2V-01", "T2V-01-Director", "I2V-01", "I2V-01-Director", "I2V-01-live"]. "Director" supports inserting instructions for camera movement control. "I2V" for image to video. "T2V" for text to video.
+        prompt (str): The prompt to generate the video from. When use Director model, the prompt supports 15 Camera Movement Instructions (Enumerated Values)
+            -Truck: [Truck left], [Truck right]
+            -Pan: [Pan left], [Pan right]
+            -Push: [Push in], [Pull out]
+            -Pedestal: [Pedestal up], [Pedestal down]
+            -Tilt: [Tilt up], [Tilt down]
+            -Zoom: [Zoom in], [Zoom out]
+            -Shake: [Shake]
+            -Follow: [Tracking shot]
+            -Static: [Static shot]
+        first_frame_image (str): The first frame image. The model must be "I2V" Series.
+        output_directory (str): The directory to save the video to.
+        async_mode (bool, optional): Whether to use async mode. Defaults to False. If True, the video generation task will be submitted asynchronously and the response will return a task_id. Should use `query_video_generation` tool to check the status of the task and get the result.
+    Returns:
+        Text content with the path to the output video file.
+    """
+)
+def minimax_generate_video(
+    model: str = DEFAULT_T2V_MODEL,
+    prompt: str = "",
+    first_frame_image  = None,
+    output_directory: str = None,
+    async_mode: bool = False
+):
+    try:
+        if not prompt:
+            raise SynClubRequestError("Prompt is required")
+
+        # check first_frame_image
+        if first_frame_image:
+            if not isinstance(first_frame_image, str):
+                raise SynClubRequestError(f"First frame image must be a string, got {type(first_frame_image)}")
+            if not first_frame_image.startswith(("http://", "https://", "data:")):
+                # if local image, convert to dataurl
+                if not os.path.exists(first_frame_image):
+                    raise SynClubRequestError(f"First frame image does not exist: {first_frame_image}")
+                with open(first_frame_image, "rb") as f:
+                    image_data = f.read()
+                    first_frame_image = f"data:image/jpeg;base64,{base64.b64encode(image_data).decode('utf-8')}"
+
+        # step1: submit video generation task
+        payload = {
+            "model": model,
+            "prompt": prompt
+        }
+        if first_frame_image:
+            payload["first_frame_image"] = first_frame_image
+        
+        response_data = api_client.post("/pulsar/mcp/minimax/ttv/create", json=payload)
+        task_id = response_data.get("task_id")
+        if not task_id:
+            raise SynClubRequestError("Failed to get task_id from response")
+
+        if async_mode:
+            return TextContent(
+                type="text",
+                text=f"Success. Video generation task submitted: Task ID: {task_id}. Please use `query_video_generation` tool to check the status of the task and get the result."
+            )
+
+        # step2: wait for video generation task to complete
+        file_id = None
+        max_retries = 30  # 10 minutes total (30 * 20 seconds)
+        retry_interval = 20  # seconds
+        
+        for attempt in range(max_retries):
+            status_response = api_client.get(f"/pulsar/mcp/minimax/ttv/task?task_id={task_id}")
+            status = status_response.get("status")
+            
+            if status == "Fail":
+                raise SynClubRequestError(f"Video generation failed for task_id: {task_id}")
+            elif status == "Success":
+                file_id = status_response.get("file_id")
+                if file_id:
+                    break
+                raise SynClubRequestError(f"Missing file_id in success response for task_id: {task_id}")
+            
+            # Still processing, wait and retry
+            time.sleep(retry_interval)
+
+        if not file_id:
+            raise SynClubRequestError(f"Failed to get file_id for task_id: {task_id}")
+
+        # step3: fetch video result
+        file_response = api_client.get(f"/pulsar/mcp/minimax/ttv/file?file_id={file_id}")
+        download_url = file_response.get("file", {}).get("download_url")
+        
+        if not download_url:
+            raise SynClubRequestError(f"Failed to get download URL for file_id: {file_id}")
+        if resource_mode == RESOURCE_MODE_URL:
+            return TextContent(
+                type="text",
+                text=f"Success. Video URL: {download_url}"
+            )
+        # step4: download and save video
+        output_path = build_output_path(output_directory, base_path)
+        output_file_name = build_output_file("video", task_id, output_path, "mp4", True)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+
+        video_response = requests.get(download_url)
+        video_response.raise_for_status()
+        
+        with open(output_path / output_file_name, "wb") as f:
+            f.write(video_response.content)
+
+        return TextContent(
+            type="text",
+            text=f"Success. Video saved as: {output_path / output_file_name}"
+        )
+
+    except SynClubAPIError as e:
+        return TextContent(
+            type="text",
+            text=f"Failed to generate video: {str(e)}"
+        )
+    except (IOError, requests.RequestException) as e:
+        return TextContent(
+            type="text",
+            text=f"Failed to handle video file: {str(e)}"
+        )
+    except Exception as e:
+        return TextContent(
+            type="text",
+            text=f"Unexpected error while generating video: {str(e)}"
+        )
+
+
 
 @mcp.tool(description="""
 Function: Automatically extract objects from input image and remove background
@@ -685,34 +820,20 @@ async def image_recognition(
         if not prompt:
             raise Exception("Prompt is required")
 
-        # 下载图像文件
-        import requests
-        response = requests.get(image_url)
-        if response.status_code != 200:
-            raise Exception(f"Failed to download image: {response.status_code}")
-
-        # 准备文件数据
-        files = {
-            "image": ("image.png", response.content, "image/png"),
-        }
-        
-        # 准备表单数据
         data = {
-            "model_name": model,
             "prompt": prompt,
-            "quality": "high",
+            "image_url": image_url
         }
 
         # 使用统一的请求函数调用GPT图像识别API
         response_data = await make_unified_request(
             method="POST",
-            path="/pulsar/mcp/openai_image_recognition/ocr",
-            data=data,
-            files=files
+            path="/pulsar/mcp/openai/ir",
+            data=data
         )
-        
+
         # 提取分析结果
-        analysis_result = response_data.get('result', response_data.get('text', 'No analysis result'))
+        analysis_result = response_data.get('result', response_data.get('data', 'No analysis result'))
         
         return TextContent(
             type="text",
@@ -986,7 +1107,7 @@ async def generate_image_to_video(
     static_mask: str = "https://h2.inkwai.com/bs2/upload-ylab-stunt/ai_portal/1732888130/WU8spl23dA/dynamic_mask_1.png",
     dynamic_masks: Optional[List[Dict[str, Any]]] = None,
     model_name: str = "kling-v1",
-    mode: str = "pro",
+    mode: str = "std",
     duration: str = "5",
     cfg_scale: float = 0.5,
     negative_prompt: str = "低质量，模糊，变形，水印，噪点",

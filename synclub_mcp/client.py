@@ -19,6 +19,7 @@ class SynclubAPIClient:
         self.session = requests.Session()
         self.session.headers.update({
             'Authorization': f'Bearer {api_key}',
+            'x-api-key': api_key,
             'MM-API-Source': 'synclub-mcp'
         })
 
@@ -63,6 +64,8 @@ class SynclubAPIClient:
             
             # Check API-specific error codes
             base_resp = data.get("base_resp", {})
+            print("!!!base_resp""")
+            print(base_resp)
             if base_resp.get("status_code") != 0:
                 match base_resp.get("status_code"):
                     case 1004:
@@ -79,6 +82,8 @@ class SynclubAPIClient:
                         raise SynclubRequestError(
                             f"API Error: {base_resp.get('status_code')}-{base_resp.get('status_msg')} "
                             f"Trace-Id: {response.headers.get('Trace-Id')}"
+                            f"base_resp Response: {str(base_resp)}"
+                            f"raw Response: {str(data)}"
                         )
                 
             return data
