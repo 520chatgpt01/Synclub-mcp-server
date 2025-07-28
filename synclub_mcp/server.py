@@ -1521,14 +1521,18 @@ async def kling_query_ttv_task(
         model_style (str): The style of the comic image. value range: ["Games", "Series", "Manhwa", "Comic", "Illustration"],
             notes: The following shows each model_style's corresponding Chinese and Japanese expressions:
             Games(游戏 / ゲーム), Series(番剧 / TVアニメ), Manhwa(韩漫 / 韓国漫画), Comic(漫画专用 / カラフル), Illustration(插画 / イラスト)
+        index (int, optional): Sequential index for tracking generation order when LLM calls this tool multiple times. Starts from 1. Useful for batch processing and result ordering.
+        max_retries (int, optional): Maximum number of retries for task polling. Default is 50.
+        retry_interval (int, optional): Interval in seconds between task polling attempts. Default is 2.
 
     Returns:
-        task_id (str): The task ID of the anime character generation task.
+        TextContent: Contains the generated image content and metadata
 """)
 async def gbu_ugc_tti(
     prompt: str,
     gender: int,
     model_style: str,
+    index: int = 1,
     max_retries: int = 50,
     retry_interval: int = 2
 ) -> TextContent:
@@ -1587,7 +1591,8 @@ async def gbu_ugc_tti(
                     "msg": task_response.get('msg', ''),
                     "cost_points": cost_points,
                     "input_parameters": data,
-                    "generated_images": images
+                    "generated_images": images,
+                    "index": index,
                 }
                 return TextContent(
                     type="text",
@@ -1600,6 +1605,7 @@ async def gbu_ugc_tti(
                     "msg": task_response.get('msg', ''),
                     "cost_points": cost_points,
                     "input_parameters": data,
+                    "index": index,
                 }
                 return TextContent(
                     type="text",
@@ -1615,6 +1621,7 @@ async def gbu_ugc_tti(
             "msg": "Anime character generation task did not complete in time",
             "cost_points": cost_points,
             "input_parameters": data,
+            "index": index,
         }
         return TextContent(
             type="text",
@@ -1628,6 +1635,7 @@ async def gbu_ugc_tti(
             "msg": f"Failed to generate and query anime character: {str(e)}",
             "cost_points": cost_points,
             "input_parameters": data,
+            "index": index,
         }
         return TextContent(
             type="text",
@@ -1642,12 +1650,18 @@ async def gbu_ugc_tti(
 
     Args:
         image_url (str): The URL of the character image.
+        index (int, optional): Sequential index for tracking generation order when LLM calls this tool multiple times. Starts from 1. Useful for batch processing and result ordering.
+        max_retries (int, optional): Maximum number of retries for task polling. Default is 20.
+        retry_interval (int, optional): Interval in seconds between task polling attempts. Default is 3.
+        
+        
 
     Returns:
-        task_id (str): The task ID of the pose align image generation task.
+        TextContent: Contains the generated image content and metadata
 """)
 async def gbu_anime_pose_align(
     image_url: str,
+    index: int = 1,
     max_retries: int = 20,
     retry_interval: int = 3
 ) -> TextContent:
@@ -1698,7 +1712,8 @@ async def gbu_anime_pose_align(
                     "msg": task_response.get('msg', ''),
                     "cost_points": cost_points,
                     "input_parameters": data,
-                    "generated_images": images
+                    "generated_images": images,
+                    "index": index,
                 }
                 return TextContent(
                     type="text",
@@ -1711,6 +1726,7 @@ async def gbu_anime_pose_align(
                     "msg": task_response.get('msg', ''),
                     "cost_points": cost_points,
                     "input_parameters": data,
+                    "index": index,
                 }
                 return TextContent(
                     type="text",
@@ -1726,6 +1742,7 @@ async def gbu_anime_pose_align(
             "msg": "Pose align task did not complete in time",
             "cost_points": cost_points,
             "input_parameters": data,
+            "index": index,
         }
         return TextContent(
             type="text",
@@ -1739,7 +1756,8 @@ async def gbu_anime_pose_align(
             "msg": f"Failed to generate and query pose align: {str(e)}",
             "cost_points": cost_points,
             "input_parameters": data,
-        }
+            "index": index,
+            }
         return TextContent(
             type="text",
             text=f"{final_result}"
@@ -1760,9 +1778,12 @@ async def gbu_anime_pose_align(
         model_style (str): The style of the comic image. value range: ["Games", "Series", "Manhwa", "Comic", "Illustration"],
             notes: The following shows each model_style's corresponding Chinese and Japanese expressions:
             Games(游戏 / ゲーム), Series(番剧 / TVアニメ), Manhwa(韩漫 / 韓国漫画), Comic(漫画专用 / カラフル), Illustration(插画 / イラスト)
+        index (int, optional): Sequential index for tracking generation order when LLM calls this tool multiple times. Starts from 1. Useful for batch processing and result ordering.
+        max_retries (int, optional): Maximum number of retries for task polling. Default is 50.
+        retry_interval (int, optional): Interval in seconds between task polling attempts. Default is 2.
 
     Returns:
-        task_id (str): The task ID of the comic image generation task.
+        TextContent: Contains the generated image content and metadata
 """)
 async def gbu_anime_comic_image(
     prompt: str,
@@ -1772,6 +1793,7 @@ async def gbu_anime_comic_image(
     char1_gender: str,
     char2_gender: str,
     model_style: str,
+    index: int = 1,
     max_retries: int = 50,
     retry_interval: int = 2       
 ) -> TextContent:
@@ -1839,6 +1861,7 @@ async def gbu_anime_comic_image(
                     "cost_points": cost_points,
                     "input_parameters": data,
                     "generated_images": images,
+                    "index": index,
                 }
                     
                 return TextContent(
@@ -1852,6 +1875,7 @@ async def gbu_anime_comic_image(
                     "msg": task_response.get('msg', ''),
                     "cost_points": cost_points,
                     "input_parameters": data,
+                    "index": index,
                 }
                 return TextContent(
                     type="text",
@@ -1867,6 +1891,7 @@ async def gbu_anime_comic_image(
             "msg": "Comic image generation task did not complete in time",
             "cost_points": cost_points,
             "input_parameters": data,
+            "index": index,
         }
         return TextContent(
             type="text",
@@ -1880,6 +1905,7 @@ async def gbu_anime_comic_image(
             "msg": f"Failed to create comic image generation task: {str(e)}",
             "cost_points": cost_points,
             "input_parameters": data,
+            "index": index,
         }
         return TextContent( 
             type="text",
@@ -1996,7 +2022,7 @@ async def gbu_generate_comic_chapters(
         chars_info (str or dict): The characters info. Supports both dictionary objects and JSON strings.
                           Example: {"char1": {"name": "Jack", "gender": "male"}, "char2": {"name": "Mary", "gender": "female"}}
     Returns:
-        TextContent: Contains the generated image prompts content
+        TextContent: Contains the  image prompts content for comic image generation
 """)
 async def gbu_generate_comic_image_prompts(
     input_chapters: Union[str, dict],
@@ -2164,7 +2190,7 @@ async def gbu_edit_comic_story(
     except Exception as e:
         return TextContent(
             type="text",
-            text=f"failed to generate comic image prompts: {str(e)}"
+            text=f"failed to edit comic story: {str(e)}"
         )
 
 
@@ -2173,7 +2199,7 @@ async def gbu_edit_comic_story(
     Args:
         edit_prompt (str): The edit prompt for the comic chapters, required.
         input_chapters (str or dict): The input chapters, required.Format example:
-          {"title": "chapter_title", "chapter_image": {"1": {"description": "scene_desc", "dialogue": [{"name": "char_name", "text": "dialogue_text"}], "aside": "aside_text"}}}
+        {"title": "chapter_title", "chapter_image": {"1": {"description": "scene_desc", "dialogue": [{"name": "char_name", "text": "dialogue_text"}], "aside": "aside_text"}}}
                           
                           
     Returns:
@@ -2219,7 +2245,7 @@ async def gbu_edit_comic_chapters(
     except Exception as e:
         return TextContent(
             type="text",
-            text=f"failed to generate comic image prompts: {str(e)}"
+            text=f"failed to edit comic chapters: {str(e)}"
         )
 
 
