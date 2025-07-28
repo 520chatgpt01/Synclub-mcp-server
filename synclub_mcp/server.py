@@ -722,7 +722,7 @@ Args:
 Returns:
     TextContent: Contains the result image URL or file path
 """)
-async def gbu_remove_bg(
+async def remove_bg(
     image_url: str,
 ) -> TextContent:
     try:
@@ -760,7 +760,7 @@ Args:
 Returns:
     TextContent: Contains the result image URL or file path
 """)
-async def gbu_hd_restore(
+async def hd_restore(
     image_url: str,
 ) -> TextContent:
     try:
@@ -944,7 +944,7 @@ async def openai_edit_image(
 
 
 @mcp.tool()
-async def gbu_japanese_tts(
+async def japanese_tts(
     text: str,
     format: str = "mp3",
     sample_rate: int = 16000,
@@ -992,7 +992,7 @@ async def gbu_japanese_tts(
         )
 
 @mcp.tool()
-async def gbu_ai_search(
+async def ai_search(
     query: str,
     search_engine: str = "Google",
     llm_name: str = "gpt4o", 
@@ -1528,7 +1528,7 @@ async def kling_query_ttv_task(
     Returns:
         TextContent: Contains the generated image content and metadata
 """)
-async def gbu_ugc_tti(
+async def ugc_tti(
     prompt: str,
     gender: int,
     model_style: str,
@@ -1659,7 +1659,7 @@ async def gbu_ugc_tti(
     Returns:
         TextContent: Contains the generated image content and metadata
 """)
-async def gbu_anime_pose_align(
+async def anime_pose_align(
     image_url: str,
     index: int = 1,
     max_retries: int = 20,
@@ -1785,7 +1785,7 @@ async def gbu_anime_pose_align(
     Returns:
         TextContent: Contains the generated image content and metadata
 """)
-async def gbu_anime_comic_image(
+async def anime_comic_image(
     prompt: str,
     scene_type: str,
     char1_image: str,
@@ -1923,7 +1923,7 @@ async def gbu_anime_comic_image(
     Returns:
         TextContent: Contains the generated comic script content
 """)
-async def gbu_generate_comic_story(
+async def generate_comic_story(
     topic_input: str
 ) -> TextContent:
     try:
@@ -1966,7 +1966,7 @@ async def gbu_generate_comic_story(
     Returns:
         TextContent: Contains the generated comic story chapters content
 """)
-async def gbu_generate_comic_chapters(
+async def generate_comic_chapters(
     input_novel: str,
     chars_info: Union[str, dict],
     chapters_num: int = 10
@@ -2024,7 +2024,7 @@ async def gbu_generate_comic_chapters(
     Returns:
         TextContent: Contains the  image prompts content for comic image generation
 """)
-async def gbu_generate_comic_image_prompts(
+async def generate_comic_image_prompts(
     input_chapters: Union[str, dict],
     chars_info: Union[str, dict],
 ) -> TextContent:
@@ -2085,7 +2085,7 @@ async def gbu_generate_comic_image_prompts(
     Returns:
         TextContent: Contains the generated image content
 """)
-async def gbu_flux_edit_image(
+async def flux_edit_image(
     image_url: str,
     image_prompt: str,
     max_retries: int = 20,
@@ -2150,7 +2150,7 @@ async def gbu_flux_edit_image(
     Returns:
         TextContent: Contains the generated comic story content
 """)
-async def gbu_edit_comic_story(
+async def edit_comic_story(
     edit_prompt: str,
     input_story: Union[str, dict],
 ) -> TextContent:
@@ -2205,7 +2205,7 @@ async def gbu_edit_comic_story(
     Returns:
         TextContent: Contains the generated comic chapters content
 """)
-async def gbu_edit_comic_chapters(
+async def edit_comic_chapters(
     edit_prompt: str,
     input_chapters: Union[str, dict],
 ) -> TextContent:

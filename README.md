@@ -92,20 +92,20 @@ If you have any problem with the command uvx, try to use the command `which uvx`
 | `kling_generate_image_to_video` | Start generate videos from images with text prompts using Kling models|
 | `kling_query_gttv_task` | Get the generate result from generate_image_to_video tool|
 | `openai_image_recognition` | Analyze and recognize image content |
-| `gbu_remove_bg` | Automatically remove image backgrounds |
-| `gbu_hd_restore` | Enhance image quality and resolution |
+| `remove_bg` | Automatically remove image backgrounds |
+| `hd_restore` | Enhance image quality and resolution |
 | `openai_generate_image` | Generate images using alternative models |
-| `gbu_ai_search` | Perform AI-powered search queries |
-| `gbu_japanese_tts` | Japanese text-to-speech conversion |
-| `gbu_generate_comic_story` | Generate a comic story based on input story theme |
-| `gbu_generate_comic_chapters` | Generate comic story chapters based on novel input, character info and chapter number |
-| `gbu_generate_comic_image_prompts` | Generate image prompts based on comic story chapter and character info |
-| `gbu_edit_comic_story` | Edit comic story based on edit prompt and input story. |
-| `gbu_edit_comic_chapters` | Edit comic chapters based on edit prompt and input chapters. |
-| `gbu_ugc_tti` | Generate a anime character based on a text prompt |
-| `gbu_anime_pose_align` | Generate a pose align image based on an anime character image |
-| `gbu_anime_comic_image` | Generate a comic image based on prompt |
-| `gbu_flux_edit_image` | edit image based on image url and image prompts |
+| `ai_search` | Perform AI-powered search queries |
+| `japanese_tts` | Japanese text-to-speech conversion |
+| `generate_comic_story` | Generate a comic story based on input story theme |
+| `generate_comic_chapters` | Generate comic story chapters based on novel input, character info and chapter number |
+| `generate_comic_image_prompts` | Generate image prompts based on comic story chapter and character info |
+| `edit_comic_story` | Edit comic story based on edit prompt and input story. |
+| `edit_comic_chapters` | Edit comic chapters based on edit prompt and input chapters. |
+| `ugc_tti` | Generate a anime character based on a text prompt |
+| `anime_pose_align` | Generate a pose align image based on an anime character image |
+| `anime_comic_image` | Generate a comic image based on prompt |
+| `flux_edit_image` | edit image based on image url and image prompts |
 
 ### Environment Variables
 
