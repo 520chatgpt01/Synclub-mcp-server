@@ -52,7 +52,7 @@ UNIFIED_BASE_URL = os.getenv("UNIFIED_API_BASE_URL", "https://api.synclubmcp.com
 # if not api_host:
 #     raise ValueError("MINIMAX_API_HOST environment variable is required")
 
-mcp = FastMCP("SynClub", log_level=fastmcp_log_level, version="0.1.0", request_timeout=300)
+mcp = FastMCP("SynClub", log_level=fastmcp_log_level)
 
 # 创建统一的 MiniMax API Client，但使用 UNIFIED_BASE_URL
 api_client = SynclubAPIClient(api_key, UNIFIED_BASE_URL)
