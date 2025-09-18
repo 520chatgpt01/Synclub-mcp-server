@@ -107,9 +107,9 @@ If you have any problem with the command uvx, try to use the command `which uvx`
 | `anime_pose_align` | Generate a pose align image based on an anime character image |
 | `anime_comic_image` | Generate a comic image based on prompt |
 | `flux_edit_image` | edit image based on image url and image prompts |
-| `google_nano_tti`｜generate image based on text prompt using google nano model | 
-| `google_nano_edit_image`｜Edit and modify existing images based on text prompts using Google Nano model | 
-| `google_nano_edit_image_highlight_feature`｜Generate specialized images based on text prompts using Google Nano model for 4 specific highlight features | 
+| `google_nano_tti` | generate image based on text prompt using google nano model |
+| `google_nano_edit_image` | Edit and modify existing images based on text prompts using Google Nano model |
+| `google_nano_edit_image_highlight_feature` | Generate specialized images based on text prompts using Google Nano model for 4 specific highlight features |
 
 ### Environment Variables
 
