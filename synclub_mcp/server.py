@@ -890,31 +890,36 @@ async def openai_image_recognition(
 
 
 @mcp.tool(description="""
-    Function: Edit an image based on a text prompt
+Function: Edit images based on a text prompt using openai model
 
-    Args:
-        image_url (str): The URL of the image to edit.
-        prompt (str): The prompt to edit the image.
+Args:
+    image_url_list (list): The list of image URLs to edit.
+    prompt (str): The prompt to edit the image.
 
-    Returns:
-        TextContent: Contains the result image URLs or file paths
+Returns:
+    TextContent: Contains the result image URLs or file paths
 """)
 async def openai_edit_image(
-    image_url: str,
+    image_url_list: list,
     prompt: str,
 ) -> TextContent:
+    """
+    openai edit image tool
+    """
     try:
-        if not image_url or not prompt:
+        if not image_url_list or not prompt:
             raise Exception("Image URL and prompt are required")
         
-        #  # 将图像url转成文件格式再上传
-        response = requests.get(image_url)
-        if response.status_code != 200:
-            raise Exception(f"图片下载失败: {response.status_code}")
-
-        files = {
-            "image": ("image.png", response.content, "image/png"),
-        }
+        # 将图像url转成文件格式再上传
+        files = []
+        for i, image_url in enumerate(image_url_list):
+            response = requests.get(image_url)
+            if response.status_code != 200:
+                raise Exception(f"图片下载失败: {response.status_code}")
+            
+            # 组成多张图像文件列表
+            files.append(('image', (f"image_{i}.png", response.content, "image/png")))
+            
             
         data = {
             "model_name": "deploy_gpt_image_1",
@@ -930,7 +935,7 @@ async def openai_edit_image(
         
         return TextContent(
             type="text",
-            text=f"Success. Image edited: {response_data}"
+            text=f"{response_data}"
         )   
         
     except Exception as e:
@@ -938,7 +943,6 @@ async def openai_edit_image(
             type="text",
             text=f"Failed to edit image: {str(e)}"
         )
-
 
 
 
@@ -1544,7 +1548,7 @@ async def ugc_tti(
             "Comic": "ugc_image_illlustrious",
             "Illustration": "ugc_image_awpainting",
         }
-        model_tag = model_style_mapping.get(model_style, "comic_image_waiNSFWv1")
+        model_tag = model_style_mapping.get(model_style, "ugc_image_illlustrious")
 
         data = {
             "prompt": prompt,
@@ -2247,7 +2251,298 @@ async def edit_comic_chapters(
             type="text",
             text=f"failed to edit comic chapters: {str(e)}"
         )
+@mcp.tool(description="""
+    Function: generate image based on text prompt using google nano model.
+    Args:
+        prompt (str): The prompt for the image to edit.
+        index (int, optional): Sequential index for tracking generation order when LLM calls this tool multiple times. Starts from 1. Useful for batch processing and result ordering.
+                          
+    Returns:
+        TextContent: Contains the generated image content
+""")
+async def google_nano_tti(
+    prompt: str,
+    index: int = 1,
+) -> TextContent:
+    """
+    Generate image based on text prompt using google nano model.
+    """
+    # Initialize variables to avoid UnboundLocalError
+    cost_points = 0
+    payload = None
+    log_id = None
+    
+    try:
+        if not prompt:
+            raise Exception("prompt is required")
+        
+        payload = {
+            "prompt": prompt
+        }
 
+        response_data = await make_unified_request(
+            method="POST",
+            path="/pulsar/mcp/inner/comic/nano_banana_text_to_image",
+            data=payload,
+        )
+        
+        errno = response_data.get('errno')
+        cost_points = response_data.get("data", {}).get("cost_points", 0)
+        if errno == 0:
+            images = response_data.get("data", {}).get("image_url_list", [])
+            final_result = {
+                "status": "generation success",
+                "msg": response_data.get('errmsg', ''),
+                "log_id": response_data.get('log_id', ''),
+                "cost_points": cost_points,
+                "input_parameters": payload,
+                "generated_images": images,
+                "index": index,
+            }
+            return TextContent(
+                type="text",
+                text=json.dumps(final_result, ensure_ascii=False)
+            )
+        else:
+            final_result = {
+                "status": "generation failed",
+                "msg": response_data.get('errmsg', ''),
+                "log_id": response_data.get('log_id', ''),
+                "cost_points": cost_points,
+                "input_parameters": payload,
+                "index": index,
+            }
+            return TextContent(
+                type="text",
+                text=json.dumps(final_result, ensure_ascii=False)
+            )
+    except Exception as e:
+        final_result = {
+            "status": "generation failed",
+            "msg": f"Failed to generate image: {str(e)}",
+            "log_id": log_id,
+            "cost_points": cost_points,
+            "input_parameters": payload,
+            "index": index,
+        }
+        return TextContent(
+            type="text",
+            text=json.dumps(final_result, ensure_ascii=False)
+        )
+
+@mcp.tool(description="""
+    Function: Edit and modify existing images based on text prompts using Google Nano model.
+    Args:
+        prompt (str): The text prompt describing how to edit or modify the image(s). Be specific about desired changes.
+        image_url_list (list): List of URLs of the images to be edited. Supports multiple images for batch processing.
+        index (int, optional): Sequential index for tracking generation order when LLM calls this tool multiple times. Starts from 1. Useful for batch processing and result ordering.
+                          
+    Returns:
+        TextContent: Contains the edited image content and processing results
+""")
+async def google_nano_edit_image(
+    prompt: str,
+    image_url_list: list,
+    index: int = 1,
+) -> TextContent:
+    """
+    Generate image based on text prompt using google nano model.
+    """
+    # Initialize variables to avoid UnboundLocalError
+    cost_points = 0
+    payload = None
+    log_id = None
+    
+    try:
+        if not prompt:
+            raise Exception("prompt is required")
+        if not image_url_list:
+            raise Exception("image_url is required")
+
+        # 将图像url转成文件格式再上传
+        files = []
+        for i, image_url in enumerate(image_url_list):
+            response = requests.get(image_url)
+            if response.status_code != 200:
+                raise Exception(f"图片下载失败: {response.status_code}")
+            
+            # 组成多张图像文件列表
+            files.append(('image', (f"image_{i}.png", response.content, "image/png")))
+            
+        payload = {
+            "prompt": prompt,   
+        }
+        
+        response_data = await make_unified_request(
+            method="POST",
+            path="/pulsar/mcp/inner/comic/nano_banana_edit_image",
+            data=payload,
+            files=files,
+        )
+
+        errno = response_data.get('errno') 
+        cost_points = response_data.get("data", {}).get("cost_points", 0)
+
+        if errno == 0:
+            images = response_data.get("data", {}).get("image_url_list", [])
+            final_result = {
+                "status": "generation success",
+                "msg": response_data.get('errmsg', ''),
+                "log_id": response_data.get('log_id', ''),
+                "cost_points": cost_points,
+                "input_parameters": payload,
+                "generated_images": images,
+                "index": index,
+            }
+            return TextContent(
+                type="text",
+                text=json.dumps(final_result, ensure_ascii=False)
+            )
+        else:
+            final_result = {
+                "status": "generation failed",
+                "msg": response_data.get('errmsg', ''),                
+                "log_id": response_data.get('log_id', ''),
+                "cost_points": cost_points,
+                "input_parameters": payload,
+                "index": index,
+            }
+            return TextContent(
+                type="text",
+                text=json.dumps(final_result, ensure_ascii=False)
+            )
+    except Exception as e:
+        final_result = {
+            "status": "generation failed",
+            "msg": f"Failed to generate image: {str(e)}",
+            "log_id": log_id,
+            "cost_points": cost_points,
+            "input_parameters": payload,
+            "index": index,
+        }
+        return TextContent(
+            type="text",
+            text=json.dumps(final_result, ensure_ascii=False)
+        )
+
+
+@mcp.tool()
+async def google_nano_edit_image_highlight_feature(
+    feature_type: str,
+    image_url_list: list,
+    index: int = 1,
+) -> TextContent:
+    """
+    Function: Generate specialized images based on text prompts using Google Nano model for \
+        4 specific highlight features
+
+    Description:
+        This function generates specialized images from input images using 4 distinct highlight features. 
+        Each feature type transforms the input image(s) into a specific format or style for different use cases.
+
+    Args:
+        feature_type (str, required): The type of highlight feature to apply. Must be one of:
+            - "three_view": Generate three orthogonal views of the IP character
+            - "emoji_pack": Create a 9-grid meme pack based on the input image
+            - "oc_character_card": Generate OC character display cards wih the character's original appearance
+            - "figure_display": Create a 1/7 scale commercialized figure of the character in realistic style
+        
+        image_url_list (list, required): List of image URLs to process.
+        
+        index (int, optional): Sequential index for tracking generation order \
+                            when the LLM calls this tool multiple times. 
+                            Starts from 1. Useful for batch processing and maintaining result ordering.
+                            Default: 1
+
+    Returns:
+        TextContent: Contains the generated image content with metadata including:
+            - Generated image URLs
+            - Feature type applied
+            - Processing status
+            - Any relevant metadata for the specific feature type
+    """
+    # Initialize variables to avoid UnboundLocalError
+    cost_points = 0
+    payload = None
+    log_id = None
+    
+    try:
+        if not feature_type:
+            raise Exception("prompt is required")
+        if not image_url_list:
+            raise Exception("image_url is required")
+        if feature_type not in NANO_PROMPT_DICT.keys():
+            raise Exception("feature_type must be one of 'three_view', 'emoji_pack', \
+                'oc_character_card', 'figure_display'")
+        else:
+            prompt = NANO_PROMPT_DICT.get(feature_type, "")
+
+        # 将图像url转成文件格式再上传
+        files = []
+        for i, image_url in enumerate(image_url_list):
+            response = requests.get(image_url)
+            if response.status_code != 200:
+                raise Exception(f"图片下载失败: {response.status_code}")
+            
+            # 组成多张图像文件列表
+            files.append(('image', (f"image_{i}.png", response.content, "image/png")))
+            
+        payload = {
+            "prompt": prompt,
+            "tool_type": "style", # oc特色生图玩法标记，方便服务端区分计费，
+        }
+        
+        response_data = await make_unified_request(
+            method="POST",
+            path="/pulsar/mcp/inner/comic/nano_banana_edit_image",
+            data=payload,
+            files=files,
+        )
+
+        errno = response_data.get('errno') 
+        cost_points = response_data.get("data", {}).get("cost_points", 0)
+
+        if errno == 0:
+            images = response_data.get("data", {}).get("image_url_list", [])
+            final_result = {
+                "status": "generation success",
+                "msg": response_data.get('errmsg', ''),
+                "log_id": response_data.get('log_id', ''),
+                "cost_points": cost_points,
+                "input_parameters": payload,
+                "generated_images": images,
+                "index": index,
+            }
+            return TextContent(
+                type="text",
+                text=json.dumps(final_result, ensure_ascii=False)
+            )
+        else:
+            final_result = {
+                "status": "generation failed",
+                "msg": response_data.get('errmsg', ''),                
+                "log_id": response_data.get('log_id', ''),
+                "cost_points": cost_points,
+                "input_parameters": payload,
+                "index": index,
+            }
+            return TextContent(
+                type="text",
+                text=json.dumps(final_result, ensure_ascii=False)
+            )
+    except Exception as e:
+        final_result = {
+            "status": "generation failed",
+            "msg": f"Failed to generate image: {str(e)}",
+            "log_id": log_id,
+            "cost_points": cost_points,
+            "input_parameters": payload,
+            "index": index,
+        }
+        return TextContent(
+            type="text",
+            text=json.dumps(final_result, ensure_ascii=False)
+        )
 
 def main():
     """Main entry point for the MCP server."""
