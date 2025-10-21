@@ -2544,6 +2544,139 @@ async def google_nano_edit_image_highlight_feature(
             text=json.dumps(final_result, ensure_ascii=False)
         )
 
+@mcp.tool(description="""
+    Function: Generate a video based on a text prompt
+    Args:
+        prompt (str): The text prompt to generate the video from.
+        model_name (str): The model name to use. values only support: "sora-2".
+        aspect_ratio (str): The aspect ratio to use. values range: "16:9", "9:16"
+        duration (str): The duration of the video in seconds. values: 10 or 15.
+
+    Returns:
+        dict: result of the video generation, including the video URL or task ID.
+""")
+async def sora_generate_text_to_video_(
+    prompt: str,
+    model_name: str,
+    aspect_ratio: str,
+    duration: str="10",
+) -> TextContent:
+    """
+    Generate a video from text prompt using Sora AI API.
+    """
+    
+    # 初始化变量
+    task_id = None
+    cost_points = 0
+    log_id = None
+    request_data = {}
+
+    # 轮询设置
+    max_retries = 200
+    retry_interval = 3
+    
+    try:         
+        width, height = ("1280", "720") if aspect_ratio == "16:9" else ("720", "1280")
+
+        request_data = {
+            "model": model_name,
+            "prompt": prompt,
+            "width": width,
+            "height": height,
+            "n_seconds": duration, # 默认生成10秒视频
+        }
+
+        ### sora 任务提交接口
+        response_data = await make_unified_request(
+            method="POST",
+            path="/pulsar/mcp/openai/v1/video/create", #任务提交接口
+            data=request_data,
+            files={}
+        )
+
+        if response_data.get('errno') != 0:
+            error_reason = response_data.get('data', {}).get('failure_reason', 'Unknown error')
+            raise Exception(error_reason)
+        
+        task_id = response_data.get("data", {}).get("id") #获取任务id
+        cost_points = response_data.get("data", {}).get("cost_points", 0)
+        log_id = response_data.get("log_id", '')
+
+        ### sora任务状态轮询接口， 只能获得任务状态        
+        for attempt in range(max_retries):
+            task_response = await make_unified_request(
+                method="GET",
+                path=f"/pulsar/mcp/openai/v1/video/retrieve", #轮询任务状态查询接口
+                data={"video_id": task_id},
+            )
+            
+            task_status = task_response.get('data', {}).get('status') #任务状态
+            
+            if task_status == "failed": #任务生成失败
+                raise Exception(task_response.get('data', {}).get('failure_reason', '')) 
+
+
+            ### sora 视频结果获取接口
+            if task_status == "succeeded": #任务生成成功
+                generation_list = task_response.get('data', {}).get('generations', [])
+                if not generation_list:
+                    raise Exception("No generation data found in response")
+                video_id = generation_list[0].get('id')
+
+                content_response = await make_unified_request(
+                    method="GET",
+                    path=f"/pulsar/mcp/openai/v1/video/content",
+                    data={"video_id": video_id},
+                )
+
+                video_url = content_response.get('data', {}).get('url', '')
+
+                final_result = {
+                    "task_id": task_id,
+                    "status": "generation success",
+                    "msg": task_response.get('data', {}).get('msg', ''),
+                    "log_id": log_id,
+                    "cost_points": cost_points,
+                    "input_parameters": request_data,
+                    "generated_video": video_url,
+                }
+                return TextContent(
+                    type="text",
+                    text=json.dumps(final_result, ensure_ascii=False)
+                )
+
+            await asyncio.sleep(retry_interval)
+
+
+        final_result = {
+            "task_id": task_id,
+            "status": "generation failed",
+            "msg": "Video generation task did not complete in time",
+            "log_id": log_id,
+            "cost_points": cost_points,
+            "input_parameters": request_data,
+        }
+        return TextContent(
+            type="text",
+            text=json.dumps(final_result, ensure_ascii=False)
+        )
+        
+    except Exception as e:
+        final_result = {
+            "task_id": task_id,
+            "status": "generation failed",
+            "msg": f"Failed to generate video: {str(e)}",
+            "cost_points": cost_points,
+            "input_parameters": request_data,
+            "log_id": log_id
+        }
+        return TextContent( 
+            type="text",
+            text=json.dumps(final_result, ensure_ascii=False)
+        )
+
+
+
 def main():
     """Main entry point for the MCP server."""
     mcp.run(transport="stdio")
