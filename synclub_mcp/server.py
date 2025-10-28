@@ -2550,8 +2550,7 @@ async def google_nano_edit_image_highlight_feature(
         prompt (str): The text prompt to generate the video from.
         model_name (str): The model name to use. values only support: "sora-2".
         aspect_ratio (str): The aspect ratio to use. values range: "16:9", "9:16"
-        duration (str): The duration of the video in seconds. values: 10 or 15.
-
+        duration (str): The duration of the video in seconds. values: 4/8/12，default: 8.
     Returns:
         dict: result of the video generation, including the video URL or task ID.
 """)
@@ -2559,7 +2558,7 @@ async def sora_generate_text_to_video_(
     prompt: str,
     model_name: str,
     aspect_ratio: str,
-    duration: str="10",
+    duration: str="8",
 ) -> TextContent:
     """
     Generate a video from text prompt using Sora AI API.
@@ -2575,27 +2574,29 @@ async def sora_generate_text_to_video_(
     max_retries = 200
     retry_interval = 3
     
-    try:         
-        width, height = ("1280", "720") if aspect_ratio == "16:9" else ("720", "1280")
+    try: 
+        if model_name not in ["sora-2"]:
+            raise Exception("model_name must be sora-2")
+
+        size = "1280x720" if aspect_ratio == "16:9" else "720x1280"
 
         request_data = {
             "model": model_name,
             "prompt": prompt,
-            "width": width,
-            "height": height,
-            "n_seconds": duration, # 默认生成10秒视频
+            "size": size,
+            "seconds": duration,
         }
 
         ### sora 任务提交接口
         response_data = await make_unified_request(
             method="POST",
-            path="/pulsar/mcp/openai/v1/video/create", #任务提交接口
+            path="/pulsar/mcp/openai/v2/video/create", #任务提交接口
             data=request_data,
             files={}
         )
 
         if response_data.get('errno') != 0:
-            error_reason = response_data.get('data', {}).get('failure_reason', 'Unknown error')
+            error_reason = response_data.get('data', {}).get('error', {}).get('message', 'Unknown error')
             raise Exception(error_reason)
         
         task_id = response_data.get("data", {}).get("id") #获取任务id
@@ -2606,35 +2607,35 @@ async def sora_generate_text_to_video_(
         for attempt in range(max_retries):
             task_response = await make_unified_request(
                 method="GET",
-                path=f"/pulsar/mcp/openai/v1/video/retrieve", #轮询任务状态查询接口
-                data={"video_id": task_id},
+                path=f"/pulsar/mcp/openai/v2/video/retrieve", #轮询任务状态查询接口
+                data={"id": task_id},
             )
             
             task_status = task_response.get('data', {}).get('status') #任务状态
             
             if task_status == "failed": #任务生成失败
-                raise Exception(task_response.get('data', {}).get('failure_reason', '')) 
+                raise Exception(task_response.get('data', {}).get('error', {}).get('message', 'Unknown error')) 
 
 
             ### sora 视频结果获取接口
-            if task_status == "succeeded": #任务生成成功
-                generation_list = task_response.get('data', {}).get('generations', [])
-                if not generation_list:
-                    raise Exception("No generation data found in response")
-                video_id = generation_list[0].get('id')
-
+            if task_status == "completed": #任务生成成功
+                video_id = task_response.get('data', {}).get('id')
+                
                 content_response = await make_unified_request(
                     method="GET",
-                    path=f"/pulsar/mcp/openai/v1/video/content",
-                    data={"video_id": video_id},
+                    path=f"/pulsar/mcp/openai/v2/video/content",
+                    data={"id": video_id},
                 )
+
+                if content_response.get('errno') != 0:
+                    raise Exception(content_response.get('errmsg', 'Unknown error'))
 
                 video_url = content_response.get('data', {}).get('url', '')
 
                 final_result = {
                     "task_id": task_id,
                     "status": "generation success",
-                    "msg": task_response.get('data', {}).get('msg', ''),
+                    "msg": "Success",
                     "log_id": log_id,
                     "cost_points": cost_points,
                     "input_parameters": request_data,
