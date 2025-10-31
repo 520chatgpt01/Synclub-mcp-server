@@ -111,6 +111,9 @@ If you have any problem with the command uvx, try to use the command `which uvx`
 | `google_nano_edit_image` | Edit and modify existing images based on text prompts using Google Nano model |
 | `google_nano_edit_image_highlight_feature` | Generate specialized images based on text prompts using Google Nano model for 4 specific highlight features |
 | `sora_generate_text_to_video_` | Generate video based on text prompt using sora-2 api
+| `veo_generate_text_to_video` | Generate video based on text prompt using google veo api
+| `sora_generate_text_to_video_` | Generate video based on text prompt using google veo api
+
 
 ### Environment Variables
 

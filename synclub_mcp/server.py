@@ -2676,6 +2676,260 @@ async def sora_generate_text_to_video_(
             text=json.dumps(final_result, ensure_ascii=False)
         )
 
+@mcp.tool(description="""
+    Function: Generate a video based on a text prompt using Google VEO AI API, with audio support.
+    Args:
+        prompt (str): The text prompt to generate the video from.
+        model_name (str): The model name to use. values only support: ["veo-3-1-fast", "veo-3-1"].
+        aspect_ratio (str): The aspect ratio to use. values range: "16:9", "9:16", default is "9:16"
+
+    Returns:
+        dict: result of the video generation, including the video URL or task ID.
+""")
+async def veo_generate_text_to_video(
+    prompt: str,
+    model_name: str,
+    aspect_ratio: str,
+) -> TextContent:
+    """
+    Generate a video from text prompt using VEO AI API.
+    """
+    # 初始化变量
+    task_id = None
+    cost_points = 0
+    log_id = None
+    request_data = {}
+
+    # 轮询设置
+    max_retries = 200
+    retry_interval = 3
+    
+    try: 
+        if model_name not in ["veo-3-1-fast", "veo-3-1"]: # 异常参数处理，默认使用veo-3-1-fast模型
+            model_name = "veo-3-1-fast"
+        if aspect_ratio not in ["16:9", "9:16"]: # 异常参数处理，默认使用9:16比例
+            aspect_ratio = "9:16"
+        
+        model_name = "veo-3.1-fast-generate-preview" if model_name == "veo-3-1-fast" else "veo-3.1-generate-preview"
+
+        request_data = {
+            "model_name": model_name,
+            "prompt": prompt,
+            "aspect_ratio": aspect_ratio,
+            "duration": "6",
+            "resolution": "1080p",
+            "generate_audio": True,
+
+        }
+
+        response_data = await make_unified_request(
+            method="POST",
+            path="/pulsar/mcp/openai/video/veo/text2video",
+            data=request_data,
+        )           
+
+        if response_data.get('errno') != 0:
+            raise Exception(response_data.get('errmsg', 'Unknown error'))
+
+        task_id = response_data.get("data", {}).get("operation_name")
+        cost_points = response_data.get("data", {}).get("cost_points", 0)
+        log_id = response_data.get("log_id", '')
+        
+        for attempt in range(max_retries):
+            task_response = await make_unified_request(
+                method="GET",
+                path=f"/pulsar/mcp/openai/video/veo/content",
+                data={"operation_name": task_id},
+            )   
+            
+            if task_response.get('errno') != 0:
+                raise Exception(task_response.get('errmsg', 'Unknown error')) 
+
+            if task_response.get('data', {}).get('status') == "failed":
+                data = task_response.get('data', {})
+                error_msg = data.get('error_message', '') or data.get('rai_filtered_reasons', '') \
+                            or 'Video generation task failed'
+                raise Exception(error_msg) # 视频生成失败，抛出异常
+            
+            if task_response.get('data', {}).get('status') == "succeeded":
+                video_url = task_response.get('data', {}).get('generated_videos', [])[0].get('video_uri', '')
+                final_result = {
+                    "task_id": task_id,
+                    "status": "generation success",
+                    "msg": "Success",
+                    "log_id": log_id,
+                    "cost_points": cost_points,
+                    "input_parameters": request_data,
+                    "generated_video": video_url,
+                }
+                return TextContent(
+                    type="text",
+                    text=json.dumps(final_result, ensure_ascii=False)
+                )
+
+            await asyncio.sleep(retry_interval)
+
+        final_result = {
+            "task_id": task_id,
+            "status": "generation failed",
+            "msg": "Video generation task did not complete in time",
+            "log_id": log_id,
+            "cost_points": cost_points,
+            "input_parameters": request_data,
+        }
+
+        return TextContent(
+            type="text",
+            text=json.dumps(final_result, ensure_ascii=False)
+        )
+
+
+    except Exception as e:  
+        final_result = {
+            "task_id": task_id,
+            "status": "generation failed",
+            "msg": f"Failed to generate video: {str(e)}",
+            "cost_points": cost_points,
+            "input_parameters": request_data,
+            "log_id": log_id
+        }
+        return TextContent(
+            type="text",
+            text=json.dumps(final_result, ensure_ascii=False)
+        )   
+
+
+@mcp.tool(description="""
+    Function: Generate a video based on a text prompt and images using Google VEO AI API, with audio support.
+    Args:
+        prompt (str): The text prompt to generate the video from.
+        model_name (str): The model name to use. values only support: ["veo-3-1-fast", "veo-3-1"].
+        aspect_ratio (str): The aspect ratio to use. values range: "16:9", "9:16", default is "9:16"
+        image (str): if user only provide one image, pass the image URL. if user provide two images, pass the first frame image URL.
+        image_tail (str, optional): if user only provide one image, leave this empty. if user provide two images, pass the last frame image URL.
+    Returns:
+        dict: result of the video generation, including the video URL or task ID.
+""")
+async def veo_generate_image_to_video(
+    prompt: str,
+    model_name: str,
+    aspect_ratio: str,
+    image: str,
+    image_tail: str,
+) -> TextContent:
+    """
+    Generate a video from text prompt and images using VEO AI API.
+    """
+    # 初始化变量
+    task_id = None
+    cost_points = 0
+    log_id = None
+    request_data = {}
+
+    # 轮询设置
+    max_retries = 200
+    retry_interval = 3
+    
+    try: 
+        if model_name not in ["veo-3-1-fast", "veo-3-1"]:
+            model_name = "veo-3-1-fast"
+        if aspect_ratio not in ["16:9", "9:16"]:
+            aspect_ratio = "9:16"
+        
+        model_name = "veo-3.1-fast-generate-preview" if model_name == "veo-3-1-fast" else "veo-3.1-generate-preview"
+
+        request_data = {
+            "model_name": model_name,
+            "prompt": prompt,
+            "aspect_ratio": aspect_ratio,
+            "duration": "6",
+            "resolution": "1080p",
+            "generate_audio": True,
+            "first_frame_image": {
+                    "image_url": image,
+                    "mime_type": "image/jpeg"
+                },
+                "last_frame_image": {
+                    "image_url": image_tail,
+                    "mime_type": "image/jpeg"
+                },
+        }
+
+        response_data = await make_unified_request(
+            method="POST",
+            path="/pulsar/mcp/openai/video/veo/image2video",
+            data=request_data,
+        )           
+
+        if response_data.get('errno') != 0:
+            raise Exception(response_data.get('errmsg', 'Unknown error'))   
+
+        task_id = response_data.get("data", {}).get("operation_name")
+        cost_points = response_data.get("data", {}).get("cost_points", 0)
+        log_id = response_data.get("log_id", '')
+
+        for attempt in range(max_retries):
+            task_response = await make_unified_request(
+                method="GET",
+                path=f"/pulsar/mcp/openai/video/veo/content",
+                data={"operation_name": task_id},
+            )
+            
+            if task_response.get('errno') != 0:
+                raise Exception(task_response.get('errmsg', 'Unknown error')) 
+
+            if task_response.get('data', {}).get('status') == "failed":
+                data = task_response.get('data', {})
+                error_msg = data.get('error_message', '') or data.get('rai_filtered_reasons', '') \
+                            or 'Video generation task failed'
+                raise Exception(error_msg) # 视频生成失败，抛出异常
+
+            if task_response.get('data', {}).get('status') == "succeeded":
+                video_url = task_response.get('data', {}).get('generated_videos', [])[0].get('video_uri', '')
+
+                final_result = {
+                    "task_id": task_id,
+                    "status": "generation success",
+                    "msg": "Success",
+                    "log_id": log_id,
+                    "cost_points": cost_points,
+                    "input_parameters": request_data,
+                    "generated_video": video_url,
+                }
+                return TextContent(
+                    type="text",
+                    text=json.dumps(final_result, ensure_ascii=False)
+                )
+
+            await asyncio.sleep(retry_interval)
+
+        final_result = {
+            "task_id": task_id,
+            "status": "generation failed",
+            "msg": "Video generation task did not complete in time",
+            "log_id": log_id,
+            "cost_points": cost_points,
+            "input_parameters": request_data,
+        }
+        return TextContent(
+            type="text",
+            text=json.dumps(final_result, ensure_ascii=False)
+        )
+
+    except Exception as e:
+        final_result = {
+            "task_id": task_id,
+            "status": "generation failed",
+            "msg": f"Failed to generate video: {str(e)}",
+            "cost_points": cost_points,
+            "input_parameters": request_data,
+            "log_id": log_id
+        }
+        return TextContent(
+            type="text",
+            text=json.dumps(final_result, ensure_ascii=False)
+        )
+
 
 
 def main():
