@@ -2095,6 +2095,14 @@ async def flux_edit_image(
     max_retries: int = 20,
     retry_interval: int = 5
 ) -> TextContent:
+    """
+    Edit image based on URL and text prompt using Flux model.
+    """
+    # Initialize variables to avoid UnboundLocalError
+    task_id = None
+    cost_points = 0
+    payload = None 
+
     try:
         if not image_url:
             raise Exception("image_url is required")
@@ -2112,7 +2120,11 @@ async def flux_edit_image(
             data=payload,
         )
 
+        if response_data.get('errno') != 0:
+            raise Exception(f"flux edit image task failed: {response_data.get('errmsg')}")
+
         task_id = response_data.get("data", {}).get("task_id")
+        cost_points = response_data.get("data", {}).get("cost_points")
         if not task_id:
             raise Exception(f"task_id is required,response_data: {response_data}")
         
@@ -2126,22 +2138,68 @@ async def flux_edit_image(
             
             errno = task_response.get('errno')
             if errno == 0: 
+                img_data = task_response.get("data", {}).get("img_data", [])
+                images = []
+                for item in img_data:
+                    item_images = item.get('images', [])
+                    for img in item_images:
+                        if img.get('webp'):
+                            images.append({
+                                'url': img['webp'],
+                                'format': 'webp'
+                            })
+
+                final_result = {
+                    "task_id": task_id,
+                    "status": "generation success",
+                    "msg": task_response.get('msg', ''),
+                    "generated_images": images,
+                    "cost_points": cost_points,
+                    "input_parameters": payload,
+                }
                 return TextContent(
                     type="text",
-                    text=f"Success. Pose align task completed: {task_response}"
+                    text=json.dumps(final_result, ensure_ascii=False)
                 )
             elif errno not in [0, 2200]: #2200，task is running
-                raise Exception(f"Pose align task failed for task_id: {task_id}")       
+                final_result = {
+                    "task_id": task_id,
+                    "status": "generation failed",
+                    "msg": task_response.get('msg', ''),
+                    "cost_points": cost_points,
+                    "input_parameters": payload,
+                }       
+                return TextContent(
+                    type="text",
+                    text=json.dumps(final_result, ensure_ascii=False)
+                )   
 
             # Wait before retrying
             await asyncio.sleep(retry_interval)
 
-        raise Exception(f"flux edit image task did not complete in time for task_id: {task_id}")
-    
-    except Exception as e:
+        final_result = {
+            "task_id": task_id,
+            "status": "generation failed",
+            "msg": "flux edit image task did not complete in time",
+            "cost_points": cost_points,
+            "input_parameters": payload,
+        }
         return TextContent(
             type="text",
-            text=f"failed to edit image: {str(e)}"
+            text=json.dumps(final_result, ensure_ascii=False)
+        )
+
+    except Exception as e:
+        final_result = {
+            "task_id": task_id,
+            "status": "generation failed",
+            "msg": f"flux edit image task failed: {str(e)}",
+            "cost_points": cost_points,
+            "input_parameters": payload,
+        }
+        return TextContent(
+            type="text",
+            text=json.dumps(final_result, ensure_ascii=False)
         )
 
 
@@ -2929,6 +2987,199 @@ async def veo_generate_image_to_video(
             type="text",
             text=json.dumps(final_result, ensure_ascii=False)
         )
+
+@mcp.tool(description="""
+    Function: generate image based on text prompt using Flux model.
+    Args:
+        prompt (str，required): The prompt for the image to edit.
+        aspect_ratio (str, optional): The aspect ratio of the image. 
+                values range: ["3:4", "4:3", "1:1", "9:16", "16:9"], default is "1:1".
+        model_name (str, required): The model name to use. values:  "flux_pro"
+                          
+    Returns:
+        TextContent: Contains the generated image content
+""")
+async def flux_pro_tti(
+    prompt: str,
+    aspect_ratio: str = "1:1",
+    model_name: str = "flux_pro",
+) -> TextContent:
+    """
+    Generate image based on text prompt using Flux Pro model.
+    """
+    # Initialize variables to avoid UnboundLocalError
+    cost_points = 0 
+    request_data = {}
+
+    try:
+        if not prompt:
+            raise Exception("prompt is required")
+        if aspect_ratio not in ["3:4", "4:3", "1:1", "9:16", "16:9"]:
+            aspect_ratio = "1:1"
+            
+        aspect_ratio_mapping = {
+            "3:4": (896, 1280),
+            "4:3": (1280, 896),
+            "1:1": (1024, 1024),
+            "9:16": (768, 1408),
+            "16:9": (1408, 768),
+        }
+        #根据宽高比计算宽高
+        width, height = aspect_ratio_mapping.get(aspect_ratio, (1024, 1024))
+        
+        request_data = {
+            "prompt": prompt,
+            "width": width,
+            "height": height,
+            "model_name": "flux-1-1-pro",
+        }
+        
+        response_data   = await make_unified_request(
+            method="POST",
+            path="/pulsar/mcp/inner/comic/flux_text_to_image",
+            data=request_data
+        )
+        
+        errno = response_data.get('errno')
+        cost_points = response_data.get("data", {}).get("cost_points", 0)
+        
+        if errno == 0: 
+            images = response_data.get("data", {}).get("image_url_list", [])
+            
+            final_result = {
+                "status": "generation success",
+                "msg": response_data.get('errmsg', ''),
+                "cost_points": cost_points,
+                "input_parameters": request_data,
+                "generated_images": images,
+                }
+            return TextContent(
+                type="text",
+                text=json.dumps(final_result, ensure_ascii=False)
+            )
+        else:
+            final_result = {
+                "status": "generation failed",
+                "msg": response_data.get('errmsg', ''),
+                "cost_points": cost_points,
+                "input_parameters": request_data,
+            }
+            return TextContent(
+                type="text",
+                text=json.dumps(final_result, ensure_ascii=False)
+            )
+        
+    except Exception as e:
+        final_result = {
+            "status": "generation failed",
+            "msg": f"Failed to create flux edit image task: {str(e)}",
+            "cost_points": cost_points,
+            "input_parameters": request_data,
+        }
+        return TextContent( 
+            type="text",
+            text=json.dumps(final_result, ensure_ascii=False)
+        )
+
+
+@mcp.tool(description="""
+    Function: edit image based on image url and prompt, support up to 4 images.
+    Args:
+        image_url (str, required): The URL of the image to edit, required.
+        image_url_2 (str, optional): The URL of the image to edit, not required.
+        image_url_3 (str, optional): The URL of the image to edit, not required.
+        image_url_4 (str, optional): The URL of the image to edit, not required.
+        prompt (str, required): The prompt for the image to edit.Only support English.
+        aspect_ratio (str, optional): The aspect ratio of the image. 
+                values range: ["3:4", "4:3", "1:1", "9:16", "16:9"], default is "1:1".
+        model_name (str, required): The model name to use. values:  "flux_pro"
+    Returns:
+        TextContent: Contains the generated image content
+""")
+async def flux_pro_edit_image(
+    image_url: str,
+    image_url_2: str,
+    image_url_3: str,
+    image_url_4: str,
+    prompt: str,
+    aspect_ratio: str = "1:1",
+    model_name: str = "flux_pro", 
+) -> TextContent:
+    """
+    Edit image based on URL and text prompt using Flux Pro model.
+    """
+    # Initialize variables to avoid UnboundLocalError
+    
+    cost_points = 0
+    payload = None 
+
+    try:
+        if not image_url:
+            raise Exception("image_url is required")
+        if not prompt:
+            raise Exception("image_prompts is required")
+        
+        if aspect_ratio not in ["3:4", "4:3", "1:1", "9:16", "16:9"]:
+            aspect_ratio = "1:1"
+        
+        payload = {
+            "model_name": "flux-kontext-pro",
+            "input_image": image_url,
+            "input_image_2": image_url_2,
+            "input_image_3": image_url_3,
+            "input_image_4": image_url_4,
+            "prompt": prompt,
+            "prompt_upsampling": True,
+            "aspect_ratio": aspect_ratio
+        }
+
+        response_data = await make_unified_request(
+            method="POST",
+            path="/pulsar/mcp/inner/comic/flux_edit_image",
+            data=payload,
+        )
+        
+        errno = response_data.get('errno')
+        cost_points = response_data.get("data", {}).get("cost_points", 0)
+        
+        if errno == 0: 
+            images = response_data.get("data", {}).get("image_url_list", [])
+            
+            final_result = {
+                "status": "generation success",
+                "msg": response_data.get('errmsg', ''),
+                "cost_points": cost_points,
+                "input_parameters": payload,
+                "generated_images": images,
+                }
+            return TextContent(
+                type="text",
+                text=json.dumps(final_result, ensure_ascii=False)
+            )
+        else:
+            final_result = {
+                "status": "generation failed",
+                "msg": response_data.get('errmsg', ''),
+                "cost_points": cost_points,
+                "input_parameters": payload,
+            }
+            return TextContent(
+                type="text",
+                text=json.dumps(final_result, ensure_ascii=False)
+            )
+        
+    except Exception as e:
+        final_result = {
+            "status": "generation failed",
+            "msg": f"Failed to create image : {str(e)}",
+            "cost_points": cost_points,
+            "input_parameters": payload,
+        }
+        return TextContent( 
+            type="text",
+            text=json.dumps(final_result, ensure_ascii=False)
+        )
+
 
 
 
