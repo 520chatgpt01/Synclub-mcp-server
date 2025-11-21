@@ -113,6 +113,9 @@ If you have any problem with the command uvx, try to use the command `which uvx`
 | `sora_generate_text_to_video_` | Generate video based on text prompt using sora-2 api
 | `veo_generate_text_to_video` | Generate video based on text prompt using google veo api
 | `sora_generate_text_to_video_` | Generate video based on text prompt using google veo api
+| `flux_pro_tti` | Generate image based on text prompt using flux pro model
+| `flux_pro_edit_image` | Generate image based on text prompt and image using flux pro model 
+
 
 
 ### Environment Variables
