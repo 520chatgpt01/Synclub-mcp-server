@@ -3098,10 +3098,10 @@ async def flux_pro_tti(
 """)
 async def flux_pro_edit_image(
     image_url: str,
-    image_url_2: str,
-    image_url_3: str,
-    image_url_4: str,
     prompt: str,
+    image_url_2: str = "",
+    image_url_3: str = "",
+    image_url_4: str = "",
     aspect_ratio: str = "1:1",
     model_name: str = "flux_pro", 
 ) -> TextContent:
@@ -3180,6 +3180,141 @@ async def flux_pro_edit_image(
             text=json.dumps(final_result, ensure_ascii=False)
         )
 
+
+@mcp.tool(description="""
+    Function: Generate image based on text prompt or images using google nano banana pro model.
+        Support Chinese and Japanese text rendering.
+
+    Args:
+        generate_type (str, required): The type of image generation. values: "text_to_image", "image_to_image"
+        model_name (str, required): The model name to use. values must be: "nano_banana_pro"
+        prompt (str, required): The prompt for the image to generate.
+        image_url_list (list, optional): The list of image URLs to use for the image generation. Support up to 14 images.
+        aspect_ratio (str, optional): The aspect ratio of the image to generate. 
+            values range: "1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9"
+            Default: None
+        image_size (str, optional): The resolution of the image to generate. 
+            values: "1K", "2K", "4K", default is "1K".
+    Returns:
+        TextContent: Contains the generated image content and metadata
+""")
+async def google_nano_banana_pro_generate_image(
+    generate_type: str,
+    model_name: str,
+    prompt: str,
+    image_url_list: Optional[List[str]] = None, 
+    aspect_ratio: Optional[str] = None,         
+    image_size: str = "1K",
+) -> TextContent:   
+    """
+    Generate image using google nano banana pro model
+    """
+    cost_points = 0
+    request_data = {}
+    log_id = None
+    
+    try:
+        # ======= 参数验证 =========
+        if not prompt:
+            raise Exception("prompt is required")  
+
+        # 验证 aspect_ratio
+        valid_ratios = ["1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9"]
+        if aspect_ratio and aspect_ratio not in valid_ratios:
+            raise Exception(
+            f"Invalid aspect_ratio: '{aspect_ratio}'. Must be one of: {valid_ratios}"
+        )     
+        # 验证 image_size
+        if image_size not in ["1K", "2K", "4K"]:
+            raise Exception(
+            f"Invalid image_size: '{image_size}'. Must be '1K', '2K', or '4K'"
+        )    
+
+
+        # ======= 构建请求 =========
+        parts = []
+        # 添加文字prompt
+        parts.append({
+            "text": prompt
+        }
+        )
+        # 添加输入图
+        if image_url_list:
+            for image_url in image_url_list:
+                if not image_url:
+                    continue 
+                parts.append({
+                    "inline_data": {
+                        "mime_type": "image/png",
+                        "data": image_url
+                    }
+                })
+        
+        # 构建完整的请求数据
+        request_data = {
+            "model_name": "gemini-3-pro-image-preview",
+            "aspect_ratio": aspect_ratio, #下游接口支持传空
+            "response_modalities": ["Image"],
+            "image_size": image_size, 
+            "contents": [
+                {
+                    "role": "user",
+                    "parts": parts
+                }
+            ]
+        }
+
+        # 发送请求到后端 API
+        response_data = await make_unified_request(
+            method="POST",
+            path="/pulsar/mcp/inner/comic/nano_banana_gemini3_pro_image",
+            data=request_data,
+            timeout=300
+        )
+
+        if response_data.get('errno') != 0:
+            log_id = response_data.get('log_id', '')
+            raise Exception(response_data.get('errmsg', 'Unknown error'))
+
+        # ======= 解析响应数据 =========
+        log_id = response_data.get('log_id', '')
+        cost_points = response_data.get('data', {}).get('cost_points', 0) 
+        images = []
+        output_list = response_data.get("data", {}).get("content", {}).get("output_list", [])
+        for output_item in output_list:
+            image_url = output_item.get("image_url")
+            if image_url:
+                images.append(image_url)
+        
+
+        final_result = {
+            "generate_type": generate_type,
+            "status": "generation success",
+            "msg": "Success",
+            "log_id": log_id,
+            "cost_points": cost_points,
+            "input_parameters": request_data,
+            "generated_images": images
+            
+        }
+        return TextContent(
+            type="text",
+            text=json.dumps(final_result, ensure_ascii=False)
+        )
+
+    except Exception as e:
+        final_result = {
+            "generate_type": generate_type,
+            "status": "generation failed",
+            "msg": f"Failed to generate image: {str(e)}",
+            "log_id": log_id,
+            "cost_points": cost_points,
+            "input_parameters": request_data,
+        }
+        return TextContent(
+            type="text",
+            text=json.dumps(final_result, ensure_ascii=False)
+        )
 
 
 

@@ -108,13 +108,14 @@ If you have any problem with the command uvx, try to use the command `which uvx`
 | `anime_comic_image` | Generate a comic image based on prompt |
 | `flux_edit_image` | edit image based on image url and image prompts |
 | `google_nano_tti` | generate image based on text prompt using google nano model |
-| `google_nano_edit_image` | Edit and modify existing images based on text prompts using Google Nano model |
+| `google_nano_edit_image` | Edit and modify existing images based on text prompts using Google Nano banana model |
 | `google_nano_edit_image_highlight_feature` | Generate specialized images based on text prompts using Google Nano model for 4 specific highlight features |
 | `sora_generate_text_to_video_` | Generate video based on text prompt using sora-2 api
 | `veo_generate_text_to_video` | Generate video based on text prompt using google veo api
 | `sora_generate_text_to_video_` | Generate video based on text prompt using google veo api
 | `flux_pro_tti` | Generate image based on text prompt using flux pro model
 | `flux_pro_edit_image` | Generate image based on text prompt and image using flux pro model 
+| `google_nano_banana_pro_generate_image` | Generate image based on text prompt and image using Google Nano banana pro model
 
 
 
